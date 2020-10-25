@@ -24,9 +24,21 @@
 #include "net/ipv6/addr.h"
 #include "net/gnrc.h"
 #include "net/gnrc/netif.h"
+#include "net/gnrc/netreg.h"
+#include "sched.h"
+#include "net/gnrc/pktbuf.h"
 
 int main(void)
 {
+    int num = 16;
+    msg_t msg_queue[num];
+    msg_init_queue(msg_queue, num);
+
+    gnrc_netreg_entry_t server = GNRC_NETREG_ENTRY_INIT_PID(8888, sched_active_pid);
+    gnrc_netreg_register(GNRC_NETTYPE_UDP, &server);
+
+    msg_t msg;
+    int msg_count = 0;
 
     puts("RIOT network stack example application");
 
@@ -46,7 +58,16 @@ int main(void)
             ipv6_addr_to_str(ipv6_addr, &ipv6_addrs[i], IPV6_ADDR_MAX_STR_LEN);
             printf("My address is %s\n", ipv6_addr);
         }
+
+        
     }
+
+    while(1) {
+        msg_receive(&msg);
+        printf("Message Count = %d\n", ++msg_count);
+        gnrc_pktsnip_t *pkt = (gnrc_pktsnip_t *)msg.content.ptr;
+        gnrc_pktbuf_release(pkt);
+        }
 
     /* main thread exits */
     return 0;
